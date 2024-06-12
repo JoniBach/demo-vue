@@ -1,5 +1,6 @@
 import { reactive, toRefs } from 'vue';
 
+// Define the reactive state
 const state = reactive({
   data: {
     users: [],
@@ -7,61 +8,70 @@ const state = reactive({
     products: [],
     reviews: [],
   },
-  columns: {
-    users: [],
-    brands: [],
-    products: [],
-    reviews: [],
-  },
-  forms: {
-    users: [],
-    brands: [],
-    products: [],
-    reviews: [],
-  },
+  columns: {},
+  forms: {},
   loading: true,
 });
 
+// Function to fetch JSON data from a given URL
+const fetchJsonData = async (url) => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch data from ${url}: ${response.statusText}`);
+  }
+  return await response.json();
+};
+
+// Function to fetch all component data based on the configuration
+const fetchComponentData = async (components, baseUrl) => {
+  const componentPromises = components.map(async (component) => {
+    const data = await fetchJsonData(baseUrl + component.data);
+    return { id: component.id, data };
+  });
+
+  const componentsData = await Promise.all(componentPromises);
+
+  return componentsData.reduce((acc, component) => {
+    acc[component.id] = component.data;
+    return acc;
+  }, {});
+};
+
+// Function to fetch additional data (columns and forms)
+const fetchAdditionalData = async () => {
+  const [columns, forms] = await Promise.all([
+    fetchJsonData("/data/columns.json"),
+    fetchJsonData("/data/forms.json"),
+  ]);
+
+  return { columns, forms };
+};
+
+// Main function to load all data and update the state
 const fetchData = async () => {
   try {
-    const usersRes = await fetch("/data/users.json");
-    const brandsRes = await fetch("/data/brands.json");
-    const productsRes = await fetch("/data/products.json");
-    const reviewsRes = await fetch("/data/reviews.json");
-    const columnsRes = await fetch("/data/columns.json");
-    const formsRes = await fetch("/data/forms.json");
+    // Fetch the configuration file
+    const config = await fetchJsonData("/data/config.json");
+    const baseUrl = '/data/';
 
-    if (
-      !usersRes.ok ||
-      !brandsRes.ok ||
-      !productsRes.ok ||
-      !reviewsRes.ok ||
-      !formsRes.ok ||
-      !columnsRes.ok
-    ) {
-      throw new Error("Failed to fetch data");
-    }
+    // Fetch component data and additional data concurrently
+    const [componentData, additionalData] = await Promise.all([
+      fetchComponentData(config.components, baseUrl),
+      fetchAdditionalData(),
+    ]);
 
-    const users = await usersRes.json();
-    const brands = await brandsRes.json();
-    const products = await productsRes.json();
-    const reviews = await reviewsRes.json();
-    const columnsData = await columnsRes.json();
-    const formsData = await formsRes.json();
-
-    state.data.users = users;
-    state.data.brands = brands;
-    state.data.products = products;
-    state.data.reviews = reviews;
-    state.columns = columnsData;
-    state.forms = formsData;
+    // Update the state with the fetched data
+    state.data = componentData;
+    state.columns = additionalData.columns;
+    state.forms = additionalData.forms;
     state.loading = false;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error fetching data:", error.message);
     state.loading = false;
   }
 };
 
+// Fetch the data when the module is loaded
 fetchData();
 
 export default function useDataStore() {
