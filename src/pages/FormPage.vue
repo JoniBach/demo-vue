@@ -2,33 +2,14 @@
   <div>
     <p v-if="loading">Loading...</p>
     <div v-else>
-      <h1>Users Form</h1>
-      <FormComponent
-        :fields="forms.users"
-        :data="data.users[0]"
-        @submit="handleSubmit"
-      />
-
-      <h1>Brands Form</h1>
-      <FormComponent
-        :fields="forms.brands"
-        :data="data.brands[0]"
-        @submit="handleSubmit"
-      />
-
-      <h1>Products Form</h1>
-      <FormComponent
-        :fields="forms.products"
-        :data="data.products[0]"
-        @submit="handleSubmit"
-      />
-
-      <h1>Reviews Form</h1>
-      <FormComponent
-        :fields="forms.reviews"
-        :data="data.reviews[0]"
-        @submit="handleSubmit"
-      />
+      <div v-for="form in forms" :key="form.id">
+        <h1>{{ capitalize(form.id) }} Form</h1>
+        <FormComponent
+          :fields="form.data"
+          :data="data[form.id]?.[0]"
+          @submit="handleSubmit"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -44,6 +25,7 @@ export default {
   },
   setup() {
     const { loading, data, forms, fetchData } = useDataStore();
+
     onMounted(async () => {
       await fetchData();
     });
@@ -52,11 +34,14 @@ export default {
       console.log("Submitted data:", formData);
     };
 
+    const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
     return {
       loading,
       data,
       forms,
       handleSubmit,
+      capitalize,
     };
   },
 };
