@@ -10,6 +10,7 @@ const state = reactive({
   },
   columns: {},
   forms: {},
+  charts: {},
   loading: true,
 });
 
@@ -39,12 +40,13 @@ const fetchComponentData = async (components, baseUrl) => {
 
 // Function to fetch additional data (columns and forms)
 const fetchAdditionalData = async () => {
-  const [columns, forms] = await Promise.all([
+  const [columns, forms, charts] = await Promise.all([
     fetchJsonData("/data/columns.json"),
     fetchJsonData("/data/forms.json"),
+    fetchJsonData("/data/charts.json"),
   ]);
 
-  return { columns, forms };
+  return { columns, forms, charts };
 };
 
 // Main function to load all data and update the state
@@ -64,6 +66,7 @@ const fetchData = async () => {
     state.data = componentData;
     state.columns = additionalData.columns;
     state.forms = additionalData.forms;
+    state.charts = additionalData.charts;
     state.loading = false;
   } catch (error) {
     console.error("Error fetching data:", error.message);
